@@ -15,7 +15,6 @@ COPY ./tsup.config.ts ./
 
 RUN npm ci --silent
 
-COPY ./src ./src
 COPY ./public ./public
 COPY ./prisma ./prisma
 COPY ./manager ./manager
@@ -24,11 +23,11 @@ COPY ./runWithProvider.js ./
 
 COPY ./Docker ./Docker
 
+COPY ./dist ./dist
+
 RUN bash -c "chmod +x ./Docker/scripts/* && dos2unix ./Docker/scripts/*"
 
 RUN ./Docker/scripts/generate_database.sh
-
-RUN npm run build
 
 FROM node:24-alpine AS final
 
