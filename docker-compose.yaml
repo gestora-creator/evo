@@ -1,0 +1,86 @@
+services:
+  api:
+    container_name: evolution_api
+    image: evoapicloud/evolution-api:latest
+    restart: always
+    depends_on:
+      redis:
+        condition: service_healthy
+      evolution-postgres:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - evolution-net
+    env_file:
+      - .env
+
+  # Frontend desabilitado - imagem com erro nginx.conf
+  # Acesse a API em http://localhost:8080 ou use a UI via API
+  # frontend:
+  #   container_name: evolution_frontend
+  #   image: evoapicloud/evolution-manager:latest
+  #   restart: always
+  #   ports:
+  #     - "4000:80"
+  #   networks:
+  #     - evolution-net
+  #   depends_on:
+  #     - api
+
+  redis:
+    container_name: evolution_redis
+    image: redis:latest
+    restart: always
+    command: >-
+      redis-server --port 6379 --appendonly yes
+      --requirepass evolution_redis_pass
+    volumes:
+      - evolution_redis:/data
+    networks:
+      - evolution-net
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "evolution_redis_pass", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  evolution-postgres:
+    container_name: evolution_postgres
+    image: postgres:15
+    restart: always
+    command:
+      - postgres
+      - -c
+      - max_connections=200
+      - -c
+      - listen_addresses=*
+    environment:
+      - POSTGRES_DB=evolution_db
+      - POSTGRES_USER=evolution_user
+      - POSTGRES_PASSWORD=Evol2026Secure
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - evolution-net
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U evolution_user -d evolution_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  evolution_instances:
+  evolution_redis:
+  postgres_data:
+
+networks:
+  evolution-net:
+    name: evolution-net
+    driver: bridge
